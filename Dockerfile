@@ -35,11 +35,13 @@ RUN pip install --no-cache-dir -U pip \
         openai-whisper==20250625 \
         websocket-client
 
-# Latency tuning on the installed package.
+# Latency tuning on the installed package (live caption path).
 RUN WHISPER_DIR="$(python -c 'import whisper_live, os; print(os.path.dirname(whisper_live.__file__))')" \
-    && sed -i 's/duration < 1.0/duration < 0.5/' "$WHISPER_DIR/backend/base.py" \
-    && sed -i 's/time.sleep(0.1)  # wait for audio chunks/time.sleep(0.02)  # wait for audio chunks/' "$WHISPER_DIR/backend/base.py" \
-    && sed -i 's/word_timestamps=self.word_timestamps)/word_timestamps=self.word_timestamps, beam_size=1, best_of=1)/' "$WHISPER_DIR/backend/faster_whisper_backend.py"
+    && sed -i 's/duration < 1.0/duration < 0.35/' "$WHISPER_DIR/backend/base.py" \
+    && sed -i 's/time.sleep(0.1)  # wait for audio chunks/time.sleep(0.01)  # wait for audio chunks/' "$WHISPER_DIR/backend/base.py" \
+    && sed -i 's/time.sleep(0.25)  # wait for voice activity, result is None when no voice activity/time.sleep(0.05)  # wait for voice activity, result is None when no voice activity/' "$WHISPER_DIR/backend/base.py" \
+    && sed -i 's/time.sleep(0.1)  # wait briefly for any new voice activity/time.sleep(0.02)  # wait briefly for any new voice activity/' "$WHISPER_DIR/backend/base.py" \
+    && sed -i 's/word_timestamps=self.word_timestamps)/word_timestamps=self.word_timestamps, beam_size=1, best_of=1, condition_on_previous_text=False)/' "$WHISPER_DIR/backend/faster_whisper_backend.py"
 
 COPY server.py /app/server.py
 
